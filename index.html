@@ -86,6 +86,16 @@ p{margin:0}
 .pk:disabled svg{filter:grayscale(1) brightness(1.08);opacity:.42}
 @media (prefers-reduced-motion:reduce){.pk,.bar i{transition:none}.pk:hover:not(:disabled){transform:none}}
 
+/* Jump buttons: stay pinned to the top of the screen while you scroll through the patch */
+.jumps{position:sticky;top:0;z-index:4;display:flex;flex-wrap:wrap;gap:8px;padding:10px 0;margin:-10px 0;background:var(--pale)}
+.jump{appearance:none;border:2px solid var(--navy);background:var(--white);color:var(--navy);font-weight:700;font-size:.9375rem;border-radius:999px;padding:8px 16px;min-height:42px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.jump:hover{background:var(--tint)}
+@media (max-width:480px){.jump .lg{display:none}.jumps{gap:6px}.jump{flex:1 1 0;justify-content:center;padding:8px 6px;font-size:.8125rem;min-height:40px}}
+.jump:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.pk.flash{animation:pkflash 1.6s ease-out}
+@keyframes pkflash{0%,55%{background:var(--tint);box-shadow:inset 0 0 0 4px var(--green)}100%{background:transparent;box-shadow:none}}
+@media (prefers-reduced-motion:reduce){.pk.flash{animation:none;background:var(--tint);box-shadow:inset 0 0 0 4px var(--green)}}
+
 .hint{font-size:.9375rem;color:var(--caption)}
 .hint b{color:var(--navy)}
 .soldout{background:var(--tint);border:1px solid var(--green);border-radius:12px;padding:16px 18px;color:var(--navy);font-weight:700}
@@ -170,12 +180,12 @@ footer small{display:block;opacity:.8;font-size:.8125rem;line-height:1.5}
         <h2 id="patch-title">The pumpkin patch</h2>
         <p>Tap a pumpkin to pick it. Tap again to put it back. Up to 10 per purchase. Give your pumpkin a name at checkout and it'll appear under the pumpkins you picked once you've paid. If someone beats you to one, we move your name to the nearest free pumpkin, and your ticket is exactly the same.</p>
       </div>
-      <p class="hint">Patch last updated <b id="updated">1 October 2026, 14:59</b></p>
+      <p class="hint">Patch last updated <b id="updated">5 October 2026, 23:21</b></p>
     </div>
 
     <div class="progress" aria-live="polite">
-      <div class="bar" role="progressbar" aria-label="Pumpkins picked so far" aria-valuemin="0" aria-valuemax="100" aria-valuenow="4"><i id="barfill"></i></div>
-      <div class="counts"><span><b id="soldcount">4</b> of <span id="totalcount">100</span> pumpkins picked</span><span><b id="leftcount"></b> still in the patch</span></div>
+      <div class="bar" role="progressbar" aria-label="Pumpkins picked so far" aria-valuemin="0" aria-valuemax="400" aria-valuenow="5"><i id="barfill"></i></div>
+      <div class="counts"><span><b id="soldcount">5</b> of <span id="totalcount">400</span> pumpkins picked</span><span><b id="leftcount"></b> still in the patch</span></div>
     </div>
 
     <div class="legend" aria-hidden="true">
@@ -184,7 +194,13 @@ footer small{display:block;opacity:.8;font-size:.8125rem;line-height:1.5}
       <span class="l-sold"><i></i>Picked and named</span>
     </div>
 
-    <div class="patch" id="patch" role="group" aria-label="Pumpkin patch, 100 pumpkins"></div>
+    <div class="jumps" id="jumps" role="group" aria-label="Move around the patch">
+      <button type="button" class="jump" id="jump-next">Next free<span class="lg"> pumpkin</span> <span aria-hidden="true">&darr;</span></button>
+      <button type="button" class="jump" id="jump-end">Jump to end</button>
+      <button type="button" class="jump" id="jump-top">Back to top</button>
+    </div>
+
+    <div class="patch" id="patch" role="group" aria-label="Pumpkin patch, 400 pumpkins"></div>
 
     <p class="hint" id="limit-hint" hidden><b>That's 10 in your basket</b>, the most for one purchase. You're very welcome to come back for more once you've paid.</p>
     <div class="soldout" id="soldout" hidden>Every pumpkin has been picked. Thank you so much for supporting the Mae Murray Foundation. The draw takes place on Monday 26 October 2026.</div>
@@ -283,13 +299,13 @@ footer small{display:block;opacity:.8;font-size:.8125rem;line-height:1.5}
 
 <script>
 (function(){
-  var TOTAL=100, SEED=20261026, MAX=10, PRICE=5;
+  var TOTAL=400, SEED=20261026, MAX=10, PRICE=5;
   var LINKS={"1": "https://buy.stripe.com/3cI7sM7Pkg201Op9okfnO01", "2": "https://buy.stripe.com/cNi00k2v0176dx7cAwfnO02", "3": "https://buy.stripe.com/cNi3cwd9E6rq2St0ROfnO03", "4": "https://buy.stripe.com/9B63cwedIbLKfFf584fnO04", "5": "https://buy.stripe.com/aFadRa5Hc5nmgJjdEAfnO05", "6": "https://buy.stripe.com/6oU28s1qWeXW64F8kgfnO06", "7": "https://buy.stripe.com/cNi5kE4D88zy2St8kgfnO07", "8": "https://buy.stripe.com/8x214o1qW7vuct32ZWfnO08", "9": "https://buy.stripe.com/bJe14oedIbLKgJjcAwfnO09", "10": "https://buy.stripe.com/eVqfZi9Xs3feakVfMIfnO0a"};
   // Live data: which pumpkins are taken and the name under each. Read from GitHub each time the page loads,
   // with the values baked in at deploy time as a fallback.
   var DATA_URL='https://raw.githubusercontent.com/mmfnotionalert-ctrl/mmf-halloween-raffle/main/data.json';
-  var ASSIGNED={"14": "Jilly", "29": "Claire", "43": "Karen", "91": "Josh"};
-  var UPDATED='1 October 2026, 14:59';
+  var ASSIGNED={"12": "Tracy", "14": "Jilly", "29": "Claire", "43": "Karen", "91": "Josh"};
+  var UPDATED='5 October 2026, 23:21';
 
   var patch=document.getElementById('patch');
   var selected={};var count=0;var sold={},soldLabel={};
@@ -352,6 +368,32 @@ footer small{display:block;opacity:.8;font-size:.8125rem;line-height:1.5}
     update();
   });
   btn.addEventListener('click',function(e){if(btn.getAttribute('aria-disabled')==='true'){e.preventDefault();}});
+
+  // Jump buttons: move around a big patch without endless scrolling
+  var jumps=document.getElementById('jumps'), paybar=document.getElementById('paybar');
+  var smooth=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth';
+  function go(y){ window.scrollTo({top:Math.max(0,y),behavior:smooth}); }
+  function showPumpkin(b){
+    var y=b.getBoundingClientRect().top+window.pageYOffset-jumps.offsetHeight-16;
+    go(y);
+    b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash');
+    try{ b.focus({preventScroll:true}); }catch(err){}
+  }
+  document.getElementById('jump-next').addEventListener('click',function(){
+    var all=patch.querySelectorAll('.pk:not(:disabled)'); if(!all.length) return;
+    var floor=jumps.getBoundingClientRect().bottom+8, pick=null;
+    for(var i=0;i<all.length;i++){ var r=all[i].getBoundingClientRect(); if(r.top>floor && all[i].getAttribute('aria-pressed')!=='true'){ pick=all[i]; break; } }
+    if(!pick){ for(var j=0;j<all.length;j++){ if(all[j].getAttribute('aria-pressed')!=='true'){ pick=all[j]; break; } } }
+    if(!pick) pick=all[0];
+    showPumpkin(pick);
+  });
+  document.getElementById('jump-end').addEventListener('click',function(){
+    var bottom=patch.getBoundingClientRect().bottom+window.pageYOffset;
+    go(bottom-window.innerHeight+(paybar.hidden?0:paybar.offsetHeight)+16);
+  });
+  document.getElementById('jump-top').addEventListener('click',function(){
+    go(patch.getBoundingClientRect().top+window.pageYOffset-jumps.offsetHeight-16);
+  });
 
   render(TOTAL, ASSIGNED, UPDATED);
   if(DATA_URL && window.fetch){
