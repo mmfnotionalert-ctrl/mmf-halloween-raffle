@@ -1,0 +1,5 @@
+# Only rebuild the site when the page itself changes.
+# data.json (and tools/) change often and are read live from GitHub, so pushes that
+# only touch them are skipped and do not use Netlify build credits.
+[build]
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- index.html netlify.toml"
