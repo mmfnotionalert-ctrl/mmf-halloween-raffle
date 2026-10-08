@@ -45,9 +45,9 @@ async function update(store, change) {
 export default async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) return new Response('Not configured', { status: 500 });
+  if (!secret) { console.log('webhook: STRIPE_WEBHOOK_SECRET is not set'); return new Response('Not configured', { status: 500 }); }
   const body = await req.text();
-  if (!verify(body, req.headers.get('stripe-signature'), secret)) return new Response('Bad signature', { status: 400 });
+  if (!verify(body, req.headers.get('stripe-signature'), secret)) { console.log('webhook: signature check failed'); return new Response('Bad signature', { status: 400 }); }
 
   let event;
   try { event = JSON.parse(body); } catch { return new Response('Bad JSON', { status: 400 }); }
@@ -58,6 +58,7 @@ export default async (req) => {
     if (obj.payment_status !== 'paid' || (obj.metadata || {}).campaign !== CAMPAIGN) return new Response('Ignored', { status: 200 });
     const rec = recordFromSession(obj);
     const result = await update(store, (records) => (records.some((r) => r.id === rec.id) ? null : [...records, rec]));
+    console.log(`webhook: purchase ${rec.id} (${rec.q} ticket(s), picks ${rec.p.join(',') || 'none'}) ${result}`);
     return new Response(result, { status: 200 });
   }
 

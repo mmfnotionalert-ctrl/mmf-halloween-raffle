@@ -15,7 +15,7 @@ export default async () => {
     // fall back to the seeds only; the page still shows everything approved in data.json
   }
   const taken = [...assign([...SEEDS, ...records])].sort((a, b) => a - b);
-  return new Response(JSON.stringify({ total: TOTAL, reserved: taken }), {
+  return new Response(JSON.stringify({ total: TOTAL, reserved: taken, webhook: Boolean(process.env.STRIPE_WEBHOOK_SECRET) }), {
     headers: {
       'content-type': 'application/json',
       'cache-control': 'public, max-age=0, must-revalidate',
