@@ -1,10 +1,11 @@
 {
- "updated": "8 October 2026, 23:10",
+ "updated": "8 October 2026, 23:25",
  "total": 400,
  "assigned": {
   "0": "Evie & Emily",
   "1": "Summer",
   "2": "Sian",
+  "3": "Vicky",
   "6": "Amy Simpy",
   "7": "Bell Crew",
   "8": "Elle",
@@ -15,6 +16,7 @@
   "15": "Percy",
   "18": "Josie",
   "22": "PrincessConsuelaBH",
+  "23": "Vicky",
   "25": "Jamie",
   "27": "Mr Ber",
   "29": "Claire",
@@ -61,6 +63,7 @@
   "329": "Bell Crew",
   "331": "Amy Simpy",
   "337": "Jenna",
+  "345": "Vicky",
   "360": "Piper's Pumpkin",
   "363": "Jan",
   "375": "Piper's Pumpkin",
@@ -68,3 +71,4 @@
   "398": "Joanna"
  }
 }
+
