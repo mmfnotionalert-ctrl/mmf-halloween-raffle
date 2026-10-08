@@ -1,5 +1,8 @@
-# Only rebuild the site when the page itself changes.
-# data.json (and tools/) change often and are read live from GitHub, so pushes that
-# only touch them are skipped and do not use Netlify build credits.
 [build]
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- index.html netlify.toml"
+  publish = "."
+  # Only rebuild when the page or the functions change. data.json and tools/ change often
+  # and are read live from GitHub, so pushes that only touch them are skipped and use no credits.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- index.html netlify.toml netlify package.json"
+
+[functions]
+  directory = "netlify/functions"

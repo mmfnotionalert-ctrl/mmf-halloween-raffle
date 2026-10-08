@@ -178,20 +178,20 @@ footer small{display:block;opacity:.8;font-size:.8125rem;line-height:1.5}
     <div class="patch-head">
       <div>
         <h2 id="patch-title">The pumpkin patch</h2>
-        <p>Tap a pumpkin to pick it. Tap again to put it back. Up to 10 per purchase. Give your pumpkin a name at checkout and it'll appear under the pumpkins you picked once you've paid. If someone beats you to one, we move your name to the nearest free pumpkin, and your ticket is exactly the same.</p>
+        <p>Tap a pumpkin to pick it. Tap again to put it back. Up to 10 per purchase. Your pumpkins are yours the moment you pay, and they turn grey so nobody else can pick them. Give your pumpkin a name at checkout and it'll appear under it once a member of the MMF team has approved it. If someone beats you to one, we give you the nearest free pumpkin, and your ticket is exactly the same.</p>
       </div>
-      <p class="hint">Patch last updated <b id="updated">5 October 2026, 23:21</b></p>
+      <p class="hint">Patch last updated <b id="updated">7 October 2026, 20:40</b></p>
     </div>
 
     <div class="progress" aria-live="polite">
-      <div class="bar" role="progressbar" aria-label="Pumpkins picked so far" aria-valuemin="0" aria-valuemax="400" aria-valuenow="5"><i id="barfill"></i></div>
-      <div class="counts"><span><b id="soldcount">5</b> of <span id="totalcount">400</span> pumpkins picked</span><span><b id="leftcount"></b> still in the patch</span></div>
+      <div class="bar" role="progressbar" aria-label="Pumpkins picked so far" aria-valuemin="0" aria-valuemax="400" aria-valuenow="6"><i id="barfill"></i></div>
+      <div class="counts"><span><b id="soldcount">6</b> of <span id="totalcount">400</span> pumpkins picked</span><span><b id="leftcount"></b> still in the patch</span></div>
     </div>
 
     <div class="legend" aria-hidden="true">
       <span class="l-avail"><i></i>Available</span>
       <span class="l-sel"><i></i>In your basket</span>
-      <span class="l-sold"><i></i>Picked and named</span>
+      <span class="l-sold"><i></i>Already picked</span>
     </div>
 
     <div class="jumps" id="jumps" role="group" aria-label="Move around the patch">
@@ -281,7 +281,7 @@ footer small{display:block;opacity:.8;font-size:.8125rem;line-height:1.5}
         <p><strong>Ticket sales close</strong> at 11.59pm on Sunday 25 October 2026, or sooner if every pumpkin has been picked.</p>
         <p><strong>The draw</strong> takes place on Monday 26 October 2026. Winners are drawn at random and contacted by phone or email within 48 hours. Results are shared on our social media with the winner's permission.</p>
         <p><strong>Prizes</strong> are as described, cannot be exchanged for cash and are subject to the donor's own terms. The Festive Afternoon Tea is two tickets for a fixed date, Thursday 19 November 2026, and cannot be moved. The StayLagom stay is one night, Sunday to Thursday, subject to availability and booked directly with StayLagom.</p>
-        <p><strong>Your pumpkin's name</strong> appears on this page once you've paid, so everyone can see the patch filling up. If you leave the name blank at checkout we use your first name instead. If you'd rather nothing showed, email info@maemurrayfoundation.org and we'll take it off.</p>
+        <p><strong>Your pumpkin's name</strong> appears on this page once a member of the MMF team has approved it, so everyone can see the patch filling up. Until then your pumpkin shows as Picked. If you leave the name blank at checkout we use your first name instead. If you'd rather nothing showed, email info@maemurrayfoundation.org and we'll take it off.</p>
         <p><strong>Your details</strong> are used only to run this raffle and contact winners. They are held securely by the Mae Murray Foundation and not shared. We'll only email you about MMF events and news if you tell us you'd like that at checkout.</p>
         <p>Buying a raffle ticket is not a donation, so Gift Aid does not apply.</p>
       </div>
@@ -304,8 +304,12 @@ footer small{display:block;opacity:.8;font-size:.8125rem;line-height:1.5}
   // Live data: which pumpkins are taken and the name under each. Read from GitHub each time the page loads,
   // with the values baked in at deploy time as a fallback.
   var DATA_URL='https://raw.githubusercontent.com/mmfnotionalert-ctrl/mmf-halloween-raffle/main/data.json';
-  var ASSIGNED={"12": "Tracy", "14": "Jilly", "29": "Claire", "43": "Karen", "91": "Josh"};
-  var UPDATED='5 October 2026, 23:21';
+  var ASSIGNED={"12": "Tracy", "14": "Jilly", "29": "Claire", "43": "Karen", "91": "Josh", "106": "Podrick"};
+  var UPDATED='7 October 2026, 20:40';
+  // Pumpkins taken by payments that have just gone through (from Stripe, via our Netlify function).
+  // These grey out straight away; the name follows once approved.
+  var RESERVED_URL='/api/reserved';
+  var live={total:TOTAL, assigned:ASSIGNED, updated:UPDATED}, reserved=[], lastKey='';
 
   var patch=document.getElementById('patch');
   var selected={};var count=0;var sold={},soldLabel={};
@@ -324,6 +328,7 @@ footer small{display:block;opacity:.8;font-size:.8125rem;line-height:1.5}
   function render(total, assigned, updated){
     TOTAL=total; sold={}; soldLabel={};
     Object.keys(assigned).forEach(function(k){ if(Number(k)<TOTAL){ sold[k]=true; soldLabel[k]=assigned[k]; } });
+    reserved.forEach(function(n){ if(n>=0 && n<TOTAL && !sold[n]){ sold[n]=true; soldLabel[n]='Picked'; } });
     var SOLD=Object.keys(sold).length;
     // keep anything already in the basket that is still free
     Object.keys(selected).forEach(function(k){ if(sold[k]||Number(k)>=TOTAL){ delete selected[k]; count--; } });
@@ -333,7 +338,7 @@ footer small{display:block;opacity:.8;font-size:.8125rem;line-height:1.5}
       var b=document.createElement('button');
       b.type='button';b.className='pk';b.dataset.n=n;
       b.innerHTML=pumpkin(n);
-      if(sold[n]){b.disabled=true;var nm=soldLabel[n]||'';b.setAttribute('aria-label','Pumpkin '+(n+1)+', already picked'+(nm?' by '+nm:''));if(nm){var tag=document.createElement('span');tag.className='name';tag.textContent=nm;b.appendChild(tag);}}
+      if(sold[n]){b.disabled=true;var nm=soldLabel[n]||'';b.setAttribute('aria-label','Pumpkin '+(n+1)+', already picked'+(nm&&nm!=='Picked'?' by '+nm:''));if(nm){var tag=document.createElement('span');tag.className='name';tag.textContent=nm;b.appendChild(tag);}}
       else{var on=!!selected[n];b.setAttribute('aria-pressed',on?'true':'false');b.setAttribute('aria-label','Pumpkin '+(n+1)+(on?', in your basket':', available'));}
       frag.appendChild(b);
     }
@@ -395,12 +400,28 @@ footer small{display:block;opacity:.8;font-size:.8125rem;line-height:1.5}
     go(patch.getBoundingClientRect().top+window.pageYOffset-jumps.offsetHeight-16);
   });
 
-  render(TOTAL, ASSIGNED, UPDATED);
-  if(DATA_URL && window.fetch){
-    fetch(DATA_URL+'?t='+Math.floor(Date.now()/60000),{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).then(function(d){
-      if(d && d.assigned){ render(d.total||TOTAL, d.assigned, d.updated||UPDATED); }
-    }).catch(function(){});
+  function draw(){
+    var key=JSON.stringify([live.total, live.assigned, reserved]);
+    if(key===lastKey) return;
+    lastKey=key; render(live.total, live.assigned, live.updated);
   }
+  function getJSON(url){ return fetch(url,{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}); }
+  function refresh(){
+    if(!window.fetch) return;
+    var minute=Math.floor(Date.now()/60000);
+    Promise.all([
+      DATA_URL ? getJSON(DATA_URL+'?t='+minute) : null,
+      getJSON(RESERVED_URL+'?t='+Math.floor(Date.now()/15000))
+    ]).then(function(res){
+      var d=res[0], r=res[1];
+      if(d && d.assigned){ live={total:d.total||TOTAL, assigned:d.assigned, updated:d.updated||UPDATED}; }
+      if(r && r.reserved && r.reserved.length!==undefined){ reserved=r.reserved; }
+      draw();
+    });
+  }
+  draw();
+  refresh();
+  setInterval(function(){ if(!document.hidden) refresh(); }, 60000);
 })();
 </script>
 </body>

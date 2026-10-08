@@ -12,7 +12,7 @@ Writes into OUT_DIR:
   Halloween_Raffle_2026_Entries.xlsx     the entries spreadsheet (PERSONAL DATA, keep private)
 Prints a short summary and exits 0. Exit code 3 means a session could not be read.
 """
-import json, sys, os, re
+import json, sys, os, re, hashlib
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -65,7 +65,7 @@ def entry_from(s):
     ref = s.get("payment_intent") or s["id"]
     note = STAFF_REFS.get(ref, "")
     if ref in VOID_REFS: note = ("VOID. " + note).strip()
-    return dict(ts=s["created"], name=(cd.get("name") or "").strip(), email=cd.get("email") or "",
+    return dict(ts=s["created"], sid=hashlib.sha256(s["id"].encode()).hexdigest()[:16], name=(cd.get("name") or "").strip(), email=cd.get("email") or "",
                 phone=cd.get("phone") or "", qty=qty, paid=(s.get("amount_total") or 0) / 100,
                 over16=yesno(field(s, "ageconfirmation")), keep=yesno(field(s, "keepintouch")),
                 ref=ref, source="Pumpkin patch" if (s.get("metadata") or {}).get("source") == "pumpkin_patch" else "Direct link",
@@ -101,7 +101,8 @@ def assign(entries):
             if q < len(picks):
                 want = picks[q]
                 if want in assigned:
-                    got = nearest_free(want); moved.append((label(x), want + 1, got + 1))
+                    got = nearest_free(want)
+                    if got is not None: moved.append((label(x), want + 1, got + 1))
                 else: got = want
             else:
                 got = next((i for i in legacy if i not in assigned), None)
@@ -185,7 +186,7 @@ def main():
         except Exception as ex:
             print("ERROR", ex); sys.exit(3)
         if e: entries.append(e)
-    entries.sort(key=lambda x: x["ts"])
+    entries.sort(key=lambda x: (x["ts"], x["sid"]))  # same order as netlify/lib/patch.mjs
     assigned, moved = assign(entries)
     now = datetime.now(ZoneInfo("Europe/London")).strftime("%-d %B %Y, %H:%M")
     data = {"updated": now, "total": TOTAL, "assigned": {str(k): v for k, v in sorted(assigned.items())}}
